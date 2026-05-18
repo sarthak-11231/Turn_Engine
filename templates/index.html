@@ -33,20 +33,37 @@
                 </div>
             </section>
 
-            <!-- Right Side: Logs / Output -->
-            <aside class="log-panel glass-panel">
-                <div class="log-header">
-                    <h2>Engine Output</h2>
-                    <span class="status-indicator"></span>
-                </div>
-                <div class="log-content" id="logContent">
-                    <!-- Activity Feed Cards will be injected here dynamically -->
-                    <div class="activity-card system">
-                        <span class="activity-icon">⚙️</span>
-                        <span class="activity-text">System initialized. Select a mode from the control panel to begin.</span>
+            <!-- Right Side: Logs & History -->
+            <div class="right-column">
+                <aside class="log-panel glass-panel">
+                    <div class="log-header">
+                        <h2>Engine Output</h2>
+                        <span class="status-indicator"></span>
                     </div>
-                </div>
-            </aside>
+                    <div class="log-content" id="logContent">
+                        <div class="activity-card system">
+                            <span class="activity-icon">⚙️</span>
+                            <span class="activity-text">System initialized. Select a mode from the control panel to begin.</span>
+                        </div>
+                    </div>
+                </aside>
+                
+                <section class="move-history-panel glass-panel">
+                    <div class="log-header">
+                        <h2>Move History</h2>
+                    </div>
+                    <div class="history-columns">
+                        <div class="history-col" id="player1History">
+                            <h3 id="player1Name">Player 1</h3>
+                            <ul class="move-list"></ul>
+                        </div>
+                        <div class="history-col" id="player2History">
+                            <h3 id="player2Name">Player 2</h3>
+                            <ul class="move-list"></ul>
+                        </div>
+                    </div>
+                </section>
+            </div>
         </main>
         
         <footer>

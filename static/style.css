@@ -1,7 +1,7 @@
 /* style.css - Modern Minimalist Theme */
 :root {
-    --bg-color: #f8fafc; 
-    --bg-gradient-start: #f1f5f9;
+    --bg-color: #faf9f6; 
+    --bg-gradient-start: #f5f4f0;
     --accent-color: #3b82f6; 
     --accent-hover: #2563eb; 
     --text-primary: #1e293b; 
@@ -175,7 +175,12 @@ header {
 /* Player Symbols */
 .piece-white {
     color: #ffffff;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0,0,0,0.1);
+    text-shadow: 
+        -1px -1px 0 #1e293b,  
+         1px -1px 0 #1e293b,
+        -1px  1px 0 #1e293b,
+         1px  1px 0 #1e293b,
+         0 4px 6px rgba(0, 0, 0, 0.4);
     display: inline-block;
 }
 
@@ -227,11 +232,106 @@ header {
     transform: translateY(0);
 }
 
+/* Right Column Layout */
+.right-column {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    max-height: 100%;
+}
+
 /* Log Panel */
 .log-panel {
     display: flex;
     flex-direction: column;
-    max-height: 600px;
+    height: 400px;
+    flex-shrink: 0;
+}
+
+/* Move History Panel */
+.move-history-panel {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    min-height: 250px;
+}
+
+.history-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.history-col {
+    display: flex;
+    flex-direction: column;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1rem;
+    overflow: hidden;
+}
+
+.history-col h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: center;
+    border-bottom: 1px solid #cbd5e1;
+    padding-bottom: 0.5rem;
+}
+
+.move-list {
+    list-style: none;
+    overflow-y: auto;
+    flex-grow: 1;
+    scroll-behavior: smooth;
+    padding-right: 4px;
+}
+
+.move-list li {
+    font-size: 0.9rem;
+    font-family: 'Inter', sans-serif;
+    padding: 0.5rem 0.6rem;
+    margin-bottom: 0.4rem;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    color: #334155;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.move-num {
+    font-weight: 600;
+    color: #94a3b8;
+    min-width: 1.2rem;
+}
+
+.history-piece-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+    color: #0f172a;
+}
+
+.move-desc {
+    color: #334155;
+    font-weight: 500;
+}
+
+.move-list::-webkit-scrollbar {
+    width: 4px;
+}
+.move-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 2px;
 }
 
 .log-header {
@@ -264,6 +364,7 @@ header {
     border-radius: 8px;
     padding: 1rem;
     overflow-y: auto;
+    scroll-behavior: smooth;
     display: flex;
     flex-direction: column;
     gap: 0.8rem;

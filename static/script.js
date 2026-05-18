@@ -71,51 +71,122 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function parseAndAppendLogs(rawOutput) {
+    async function executeLogSequence(rawOutput) {
         const lines = rawOutput.split('\n');
-        let delay = 0;
         
-        lines.forEach(line => {
-            if (!line.trim()) return;
-            if (line.includes("Board State String:") || line.match(/^[XO\- \|]+$/)) return;
+        // Disable buttons during animation
+        document.querySelectorAll('.btn').forEach(b => b.style.pointerEvents = 'none');
+        
+        for (const line of lines) {
+            const text = line.trim();
+            if (!text) continue;
+            if (text.match(/^[XO\- \|]+$/)) continue; // ignore old tic-tac-toe strings
             
-            let type = 'info';
-            let icon = '🔹';
-            
-            if (line.includes('[Move')) {
-                type = 'move';
-                icon = '🎯';
-            } else if (line.includes('Similarity') || line.includes('Edit Distance') || line.includes('Repetition Count')) {
-                type = 'metric';
-                icon = '📊';
-            } else if (line.includes('Potential Draw') || line.includes('nearly identical')) {
-                type = 'warning';
-                icon = '⚠️';
-            } else if (line.includes('Threefold Repetition') || line.includes('Draw by') || line.includes('Error')) {
-                type = 'critical';
-                icon = '🚨';
-            } else if (line.includes('Semaphore') || line.includes('protect') || line.includes('safely')) {
-                type = 'secure';
-                icon = '🛡️';
-            } else if (line.includes('RACE CONDITION') || line.includes('overwriting')) {
-                type = 'danger';
-                icon = '⚡';
+            if (text.startsWith("Board State String:")) {
+                const fen = text.match(/'([^']+)'/);
+                if (fen && fen[1]) {
+                    updateBoard(fen[1]);
+                    await new Promise(r => setTimeout(r, 700));
+                }
+            } else if (text.startsWith("ANIMATE:")) {
+                const parts = text.split('->');
+                if (parts.length === 2) {
+                    const src = parts[0].replace("ANIMATE:", "").trim().toLowerCase();
+                    const destPart = parts[1].split('|');
+                    const dest = destPart[0].trim().toLowerCase();
+                    const pieceChar = destPart.length > 1 ? destPart[1].trim() : 'N';
+                    animateMove(src, dest, pieceChar);
+                    await new Promise(r => setTimeout(r, 350));
+                }
+            } else if (text.startsWith("HISTORY:")) {
+                const parts = text.replace("HISTORY:", "").split("|");
+                if (parts.length === 2) {
+                    const playerStr = parts[0].trim();
+                    const moveStr = parts[1].trim();
+                    
+                    let isPlayer1 = playerStr === "Player 1" || playerStr === "White" || playerStr.includes("UP");
+                    let targetList, count;
+                    
+                    if (isPlayer1) {
+                        targetList = document.querySelector('#player1History .move-list');
+                        const p1Name = document.getElementById('player1Name');
+                        if (p1Name) p1Name.textContent = playerStr;
+                        count = player1MoveCount++;
+                    } else {
+                        targetList = document.querySelector('#player2History .move-list');
+                        const p2Name = document.getElementById('player2Name');
+                        if (p2Name) p2Name.textContent = playerStr;
+                        count = player2MoveCount++;
+                    }
+                    
+                    if (targetList) {
+                        const li = document.createElement('li');
+                        
+                        const firstChar = moveStr.charAt(0);
+                        const rest = moveStr.substring(1).trim();
+                        const isSymbol = ['♙', '♘', '♗', '♖', '♕', '♔', '♟', '♞', '♝', '♜', '♛', '♚'].includes(firstChar);
+                        
+                        if (isSymbol) {
+                            li.innerHTML = `<span class="move-num">${count}.</span> <span class="history-piece-icon">${firstChar}</span> <span class="move-desc">${rest}</span>`;
+                        } else {
+                            li.innerHTML = `<span class="move-num">${count}.</span> <span class="move-desc">${moveStr}</span>`;
+                        }
+                        
+                        targetList.appendChild(li);
+                        targetList.scrollTop = targetList.scrollHeight;
+                    }
+                }
+            } else {
+                let type = 'info';
+                let icon = '🔹';
+                
+                if (text.includes('[Move')) { type = 'move'; icon = '🎯'; }
+                else if (text.includes('Strategy') || text.includes('Similarity') || text.includes('Edit Distance') || text.includes('Repetition Count')) { type = 'metric'; icon = '📊'; }
+                else if (text.includes('Potential Draw') || text.includes('nearly identical')) { type = 'warning'; icon = '⚠️'; }
+                else if (text.includes('Threefold Repetition') || text.includes('Draw by') || text.includes('Error')) { type = 'critical'; icon = '🚨'; }
+                else if (text.includes('Semaphore') || text.includes('safely')) { type = 'secure'; icon = '🛡️'; }
+                else if (text.includes('RACE CONDITION') || text.includes('overwrote') || text.includes('DUPLICATED')) { type = 'danger'; icon = '⚡'; }
+                
+                createActivityCard(text, type, icon);
+                
+                // Presentation pacing delays
+                if (text.includes('starting') || text.includes('Acquired') || text.includes('read') || text.includes('waiting')) {
+                    await new Promise(r => setTimeout(r, 1000));
+                } else if (type === 'metric' || type === 'move') {
+                    await new Promise(r => setTimeout(r, 200));
+                } else {
+                    await new Promise(r => setTimeout(r, 600));
+                }
             }
-            
-            setTimeout(() => {
-                createActivityCard(line.trim(), type, icon);
-            }, delay);
-            delay += 60;
-        });
+        }
+        
+        document.querySelectorAll('.btn').forEach(b => b.style.pointerEvents = 'auto');
+        appendLog("Demo execution sequence complete.", "system");
     }
 
     function clearLogs() {
         logContent.innerHTML = '';
+        clearHistory();
+    }
+
+    function clearHistory() {
+        const p1List = document.querySelector('#player1History .move-list');
+        const p2List = document.querySelector('#player2History .move-list');
+        if (p1List) p1List.innerHTML = '';
+        if (p2List) p2List.innerHTML = '';
+        
+        const p1Name = document.getElementById('player1Name');
+        const p2Name = document.getElementById('player2Name');
+        if (p1Name) p1Name.textContent = 'Player 1';
+        if (p2Name) p2Name.textContent = 'Player 2';
+        
+        player1MoveCount = 1;
+        player2MoveCount = 1;
     }
 
     const pieces = {
         'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚', 'p': '♟',
-        'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔', 'P': '♙'
+        'R': '♜', 'N': '♞', 'B': '♝', 'Q': '♛', 'K': '♚', 'P': '♟'
     };
 
     function updateBoard(fen) {
@@ -160,21 +231,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function animateBoard(states) {
-        let index = 0;
-        updateBoard('8/8/8/8/8/8/8/8'); // clear board
-        
-        const interval = setInterval(() => {
-            if (index < states.length) {
-                updateBoard(states[index]);
-                index++;
-            } else {
-                clearInterval(interval);
-            }
-        }, 500);
-    }
+
 
     let currentLegalMoves = [];
+    let player1MoveCount = 1;
+    let player2MoveCount = 1;
     let selectedSquare = null;
 
     function clearHighlights() {
@@ -200,14 +261,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleBackendResponse(data) {
-        if (data.legal_moves) currentLegalMoves = data.legal_moves;
+        if (data.legal_moves) {
+            currentLegalMoves = data.legal_moves;
+            const wrapper = document.querySelector('.chess-board-wrapper');
+            if (currentLegalMoves.length === 0) {
+                wrapper.style.opacity = '0.7';
+                wrapper.style.pointerEvents = 'none';
+            } else {
+                wrapper.style.opacity = '1';
+                wrapper.style.pointerEvents = 'auto';
+            }
+        }
         
         if (data.output) {
-            appendLog("Execution complete. Processing feed...", "system");
-            parseAndAppendLogs(data.output);
-            if (data.states && data.states.length > 0) animateBoard(data.states);
+            appendLog("Processing sequence...", "system");
+            executeLogSequence(data.output);
         } else {
             appendLog("No output received from server.", "system");
+            document.querySelectorAll('.btn').forEach(b => b.style.pointerEvents = 'auto');
         }
     }
 

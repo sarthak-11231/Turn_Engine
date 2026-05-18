@@ -11,6 +11,8 @@ app = Flask(__name__)
 # Global state for interactive game mode
 game_board = chess.Board()
 game_history = []
+white_move_str = ""
+black_move_str = ""
 
 def capture_output(func, mock_inputs=None):
     """
@@ -64,9 +66,11 @@ def extract_states(output):
 @app.route('/interactive', methods=['POST'])
 def interactive():
     """Starts a new interactive game."""
-    global game_board, game_history
+    global game_board, game_history, white_move_str, black_move_str
     game_board = chess.Board()
     game_history = []
+    white_move_str = ""
+    black_move_str = ""
     
     output = "Interactive Game Started. Waiting for your move...\n"
     output += f"Board State String: '{game_board.board_fen()}'"
@@ -81,7 +85,7 @@ def interactive():
 @app.route('/play_move', methods=['POST'])
 def play_move():
     """Plays a move on the interactive board."""
-    global game_board, game_history
+    global game_board, game_history, white_move_str, black_move_str
     data = request.json
     move_uci = data.get('move')
     
@@ -92,11 +96,40 @@ def play_move():
     try:
         move = chess.Move.from_uci(move_uci)
         if move in game_board.legal_moves:
+            move_san = game_board.san(move)
+            is_white_turn = game_board.turn
+            
+            piece = game_board.piece_at(move.from_square)
+            piece_symbol = piece.unicode_symbol() if piece else ""
+            piece_color = "White" if (piece and piece.color == chess.WHITE) else "Black"
+            piece_name = chess.piece_name(piece.piece_type).title() if piece else "Piece"
+            dest_square = chess.square_name(move.to_square).lower()
+            readable_move = f"{piece_symbol} {piece_color} {piece_name} → {dest_square}"
+
+            if is_white_turn:
+                white_move_str += move_san
+                print(f"HISTORY: Player 1 | {readable_move}")
+            else:
+                black_move_str += move_san
+                print(f"HISTORY: Player 2 | {readable_move}")
+                
             game_board.push(move)
             state_string = game_board.board_fen()
-            print(f"[Move {len(game_history)+1}] Player played {move_uci}")
+            print(f"[Move {len(game_history)+1}] Player played {move_uci} ({move_san})")
             print(f"Board State String: '{state_string}'")
             
+            # --- Strategy Similarity Report ---
+            if not is_white_turn:
+                # Compare strategies after black completes a full turn cycle
+                ed_dist = turn_engine.edit_distance(white_move_str, black_move_str)
+                lcs_len = turn_engine.lcs(white_move_str, black_move_str)
+                max_len = max(len(white_move_str), len(black_move_str))
+                similarity = (lcs_len / max_len * 100) if max_len > 0 else 0
+                
+                print(f"White Strategy: {white_move_str}")
+                print(f"Black Strategy: {black_move_str}")
+                print(f"Strategy Similarity Report: Edit Distance = {ed_dist} | Similarity = {similarity:.1f}%")
+                
             # LCS and Edit distance logic
             if len(game_history) > 0:
                 print("  Comparing with history...")
@@ -115,12 +148,21 @@ def play_move():
                         print("    --> States are nearly identical (Edit Distance <= 1)")
                         
             game_history.append(state_string)
-            if game_board.is_game_over():
+            
+            if game_board.can_claim_threefold_repetition():
+                print("    *** Draw by Threefold Repetition! ***")
+                legal_moves_list = []
+            elif game_board.is_game_over():
                 print("Game Over!")
+                legal_moves_list = []
+            else:
+                legal_moves_list = [m.uci() for m in game_board.legal_moves]
         else:
             print(f"Invalid move: {move_uci}")
+            legal_moves_list = [m.uci() for m in game_board.legal_moves]
     except Exception as e:
         print(f"Error: {e}")
+        legal_moves_list = [m.uci() for m in game_board.legal_moves]
     finally:
         sys.stdout = old_stdout
         
@@ -129,7 +171,7 @@ def play_move():
     return jsonify({
         "output": output,
         "states": states,
-        "legal_moves": [m.uci() for m in game_board.legal_moves]
+        "legal_moves": legal_moves_list
     })
 
 @app.route('/race-demo', methods=['POST'])

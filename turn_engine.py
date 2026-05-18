@@ -43,40 +43,42 @@ def simulate_race_condition():
     """
     print("\n--- Starting Multithreading Race Condition Demo ---")
     
-    # Create an empty board and place a single White Knight in the center
+    # Create an empty board and place a single White Rook in the center
     shared_board = chess.Board(None) 
-    shared_board.set_piece_at(chess.E4, chess.Piece(chess.KNIGHT, chess.WHITE))
+    shared_board.set_piece_at(chess.E4, chess.Piece(chess.ROOK, chess.WHITE))
     print(f"Board State String: '{shared_board.board_fen()}'")
     
     def player_thread_task(thread_name, dest_square):
-        print(f"Thread [{thread_name}] starting. Goal: move Knight to {chess.square_name(dest_square).upper()}")
+        print(f"Thread [{thread_name}] starting. Goal: move Rook to {chess.square_name(dest_square).upper()}")
         
         # 1. READ PHASE (Critical Section Start)
-        # Find the Knight's current position
-        knights = list(shared_board.pieces(chess.KNIGHT, chess.WHITE))
-        if not knights:
-            print(f"Thread [{thread_name}] ERROR: Knight vanished!")
+        # Find the Rook's current position
+        rooks = list(shared_board.pieces(chess.ROOK, chess.WHITE))
+        if not rooks:
+            print(f"Thread [{thread_name}] ERROR: Rook vanished!")
             return
             
-        current_square = knights[0]
-        print(f"Thread [{thread_name}] read Knight at {chess.square_name(current_square).upper()}")
+        current_square = rooks[0]
+        print(f"Thread [{thread_name}] read Rook at {chess.square_name(current_square).upper()}")
         
         # 2. CONTEXT SWITCH (Delay)
-        # By sleeping here, we guarantee both threads will read the Knight at E4
+        # By sleeping here, we guarantee both threads will read the Rook at E4
         # before either thread has a chance to move it.
         time.sleep(0.5) 
         
         # 3. WRITE PHASE (Critical Section End)
         # Remove it from where we *thought* it was, and place it at the destination
         shared_board.remove_piece_at(current_square)
-        shared_board.set_piece_at(dest_square, chess.Piece(chess.KNIGHT, chess.WHITE))
+        shared_board.set_piece_at(dest_square, chess.Piece(chess.ROOK, chess.WHITE))
         
-        print(f"RACE CONDITION ALERT: Thread [{thread_name}] overwrote board! Placed Knight at {chess.square_name(dest_square).upper()}")
+        print(f"ANIMATE: {chess.square_name(current_square)} -> {chess.square_name(dest_square)} | R")
+        print(f"HISTORY: Thread {thread_name} | ♖ White Rook → {chess.square_name(dest_square).lower()}")
+        print(f"RACE CONDITION ALERT: Thread [{thread_name}] overwrote board! Placed Rook at {chess.square_name(dest_square).upper()}")
         print(f"Board State String: '{shared_board.board_fen()}'")
 
-    # Thread 1 wants to move the Knight UP
+    # Thread 1 wants to move the Rook UP
     thread_1 = threading.Thread(target=player_thread_task, args=("UP", chess.E8))
-    # Thread 2 wants to move the Knight RIGHT
+    # Thread 2 wants to move the Rook RIGHT
     thread_2 = threading.Thread(target=player_thread_task, args=("RIGHT", chess.H4))
     
     # Start both threads simultaneously
@@ -88,7 +90,7 @@ def simulate_race_condition():
     thread_2.join()
     
     print("\nRace Condition Demo Complete!")
-    print("Notice how the Knight was DUPLICATED! Both threads read E4 simultaneously, leading to corrupted state.")
+    print("Notice how the Rook was DUPLICATED! Both threads read E4 simultaneously, leading to corrupted state.")
     print(f"Final Board State String: '{shared_board.board_fen()}'")
 
 def simulate_semaphore_sync():
@@ -99,9 +101,9 @@ def simulate_semaphore_sync():
     """
     print("\n--- Starting Semaphore Synchronized Demo ---")
     
-    # Create an empty board and place a single White Knight in the center
+    # Create an empty board and place a single White Rook in the center
     shared_board = chess.Board(None) 
-    shared_board.set_piece_at(chess.E4, chess.Piece(chess.KNIGHT, chess.WHITE))
+    shared_board.set_piece_at(chess.E4, chess.Piece(chess.ROOK, chess.WHITE))
     print(f"Initial Board State String: '{shared_board.board_fen()}'")
     
     # Create a semaphore with a value of 1 (also known as a mutex).
@@ -117,13 +119,13 @@ def simulate_semaphore_sync():
         
         try:
             # --- CRITICAL SECTION START ---
-            knights = list(shared_board.pieces(chess.KNIGHT, chess.WHITE))
-            if not knights:
-                print(f"Thread [{thread_name}] ERROR: Knight vanished!")
+            rooks = list(shared_board.pieces(chess.ROOK, chess.WHITE))
+            if not rooks:
+                print(f"Thread [{thread_name}] ERROR: Rook vanished!")
                 return
                 
-            current_square = knights[0]
-            print(f"Thread [{thread_name}] read Knight at {chess.square_name(current_square).upper()}")
+            current_square = rooks[0]
+            print(f"Thread [{thread_name}] read Rook at {chess.square_name(current_square).upper()}")
             
             # The delay is inside the critical section. 
             # Because of the semaphore, the other thread is forced to wait outside, preventing overlap.
@@ -134,9 +136,11 @@ def simulate_semaphore_sync():
             dest_square = chess.square(new_file, new_rank)
             
             shared_board.remove_piece_at(current_square)
-            shared_board.set_piece_at(dest_square, chess.Piece(chess.KNIGHT, chess.WHITE))
+            shared_board.set_piece_at(dest_square, chess.Piece(chess.ROOK, chess.WHITE))
             
-            print(f"Thread [{thread_name}] safely moved Knight to {chess.square_name(dest_square).upper()}")
+            print(f"ANIMATE: {chess.square_name(current_square)} -> {chess.square_name(dest_square)} | R")
+            print(f"HISTORY: Thread {thread_name} | ♖ White Rook → {chess.square_name(dest_square).lower()}")
+            print(f"Thread [{thread_name}] safely moved Rook to {chess.square_name(dest_square).upper()}")
             print(f"Board State String: '{shared_board.board_fen()}'")
             # --- CRITICAL SECTION END ---
         except Exception as e:
@@ -145,9 +149,9 @@ def simulate_semaphore_sync():
             print(f"Semaphore Released by [{thread_name}]")
             board_semaphore.release()
 
-    # Thread 1 wants to move the Knight UP by 4 ranks
+    # Thread 1 wants to move the Rook UP by 4 ranks
     thread_1 = threading.Thread(target=player_thread_task, args=("UP", 0, 4))
-    # Thread 2 wants to move the Knight RIGHT by 3 files
+    # Thread 2 wants to move the Rook RIGHT by 3 files
     thread_2 = threading.Thread(target=player_thread_task, args=("RIGHT", 3, 0))
     
     # Start both threads simultaneously
@@ -159,7 +163,7 @@ def simulate_semaphore_sync():
     thread_2.join()
     
     print("\nSemaphore Sync Demo Complete!")
-    print("Notice how the Knight moved safely in sequence (E4 -> E8 -> H8) without duplication!")
+    print("Notice how the Rook moved safely in sequence (E4 -> E8 -> H8) without duplication!")
     print(f"Final Board State String: '{shared_board.board_fen()}'")
 
 
@@ -187,8 +191,18 @@ def simulate_20_moves():
                 
             move = random.choice(legal_moves)
             player = "White" if board.turn == chess.WHITE else "Black"
+            player_history_name = "Player 1" if board.turn == chess.WHITE else "Player 2"
+            move_san = board.san(move)
             
+            piece = board.piece_at(move.from_square)
+            piece_symbol = piece.unicode_symbol() if piece else ""
+            piece_color = "White" if (piece and piece.color == chess.WHITE) else "Black"
+            piece_name = chess.piece_name(piece.piece_type).title() if piece else "Piece"
+            dest_square = chess.square_name(move.to_square).lower()
+            readable_move = f"{piece_symbol} {piece_color} {piece_name} → {dest_square}"
+
             board.push(move)
+            print(f"HISTORY: {player_history_name} | {readable_move}")
             state_string = board.board_fen()
             history.append(state_string)
             
